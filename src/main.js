@@ -106,24 +106,31 @@ class TextAlign {
             return;
         }
         
-        // Check if we're in a header block
-        const currentBlock = this.api.blocks.getCurrentBlock();
-        if (currentBlock) {
-            const blockElement = currentBlock.holder;
-            if (blockElement) {
-                const computedStyle = window.getComputedStyle(blockElement);
-                const textAlign = computedStyle.getPropertyValue('text-align');
+        try {
+            // Instead of trying to get current block through non-existent API
+            // Get the current alignment from the selected range
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const parentNode = this.getParentNode(range.commonAncestorContainer);
                 
-                if (textAlign === 'center') {
-                    this.state = 'center';
-                } else if (textAlign === 'right') {
-                    this.state = 'right';
-                } else if (textAlign === 'justify') {
-                    this.state = 'justify';
-                } else {
-                    this.state = 'left';
+                if (parentNode) {
+                    const computedStyle = window.getComputedStyle(parentNode);
+                    const textAlign = computedStyle.getPropertyValue('text-align');
+                    
+                    if (textAlign === 'center') {
+                        this.state = 'center';
+                    } else if (textAlign === 'right') {
+                        this.state = 'right';
+                    } else if (textAlign === 'justify') {
+                        this.state = 'justify';
+                    } else {
+                        this.state = 'left';
+                    }
                 }
             }
+        } catch (e) {
+            console.warn('Error checking text alignment state', e);
         }
         
         this.setIcon();
@@ -134,12 +141,11 @@ class TextAlign {
         const alignmentData = {};
         
         try {
-            // Get the parent node that contains the alignment
-            const blockNode = this.getParentNode(blockContent);
-            
-            // Save the alignment if it exists
-            if (blockNode && blockNode.style && blockNode.style.textAlign) {
-                alignmentData.textAlign = blockNode.style.textAlign;
+            if (blockContent && blockContent.style && blockContent.style.textAlign) {
+                alignmentData.textAlign = blockContent.style.textAlign;
+            } else if (blockContent && blockContent.parentNode && blockContent.parentNode.style && blockContent.parentNode.style.textAlign) {
+                // Try parent node if blockContent doesn't have alignment
+                alignmentData.textAlign = blockContent.parentNode.style.textAlign;
             }
         } catch (e) {
             console.warn('TextAlign plugin: Error saving alignment data', e);
@@ -154,23 +160,20 @@ class TextAlign {
             // Try to restore alignment if it exists in the data
             setTimeout(() => {
                 try {
-                    const savedData = block.data;
-                    if (savedData && savedData.textAlign) {
-                        const holder = block.holder;
-                        if (holder) {
-                            // Apply alignment to the block
-                            holder.style.textAlign = savedData.textAlign;
+                    const blockData = block.data || {};
+                    
+                    // Check if we have alignment data
+                    if (blockData.textAlign) {
+                        // Apply alignment to the block holder
+                        if (block.holder) {
+                            block.holder.style.textAlign = blockData.textAlign;
                             
-                            // Also apply to any headings inside
-                            const headings = holder.querySelectorAll('h1, h2, h3, h4, h5, h6');
-                            headings.forEach(heading => {
-                                heading.style.textAlign = savedData.textAlign;
-                            });
-                            
-                            // And to paragraphs
-                            const paragraphs = holder.querySelectorAll('p, div');
-                            paragraphs.forEach(p => {
-                                p.style.textAlign = savedData.textAlign;
+                            // Find and align all relevant child elements
+                            ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div'].forEach(tagName => {
+                                const elements = block.holder.querySelectorAll(tagName);
+                                elements.forEach(el => {
+                                    el.style.textAlign = blockData.textAlign;
+                                });
                             });
                         }
                     }
