@@ -28,47 +28,53 @@ class TextAlign {
         };
     }
     
-    // Add proper block-level integration
-    static get enableLineBreaks() {
-        return true;
-    }
-    
-    // Add block-level integration for specifying alignment classnames
-    static get blockClassNames() {
-        return {
-            'text-align-left': 'text-align-left',
-            'text-align-center': 'text-align-center',
-            'text-align-right': 'text-align-right',
-            'text-align-justify': 'text-align-justify'
-        };
-    }
-    
-    // Convert DOM to data
-    static get conversionConfig() {
-        return {
-            export: (domNode) => {
-                const alignmentStyle = domNode.style.textAlign;
-                if (!alignmentStyle) return {};
-                
-                return {
-                    textAlign: alignmentStyle
-                };
-            },
-            import: (data) => {
-                return {
-                    textAlign: data.textAlign || 'left'
-                };
-            }
-        };
-    }
-    
-    constructor({ api }) {
-        //console.log("Constructing")
+    constructor({ api, config = {} }) {
         this.currenticon = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="square" stroke-linejoin="arcs"></svg>'
         this.aligncurrenticon = new DOMParser().parseFromString(this.currenticon,'application/xml');
         this.button = null;
         this.state = "left";
-        this.api = api
+        this.api = api;
+        this.config = config;
+        
+        // Subscribe to the 'block-rendered' event to apply alignment
+        this.api.listeners.on('block-rendered', this._onBlockRendered.bind(this));
+    }
+    
+    // Handler for block-rendered event
+    _onBlockRendered(block) {
+        try {
+            const blockData = block.block.data;
+            
+            // Check for alignment data - could be in tunes or directly in block data
+            let textAlign;
+            if (blockData.tunes && blockData.tunes.textAlign) {
+                textAlign = blockData.tunes.textAlign.alignment;
+            } else if (blockData.textAlign) {
+                textAlign = blockData.textAlign;
+            }
+            
+            if (textAlign) {
+                const holder = block.htmlElement;
+                if (holder) {
+                    // Apply alignment to the block holder
+                    holder.style.textAlign = textAlign;
+                    
+                    // Apply to header elements
+                    const headers = holder.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    headers.forEach(header => {
+                        header.style.textAlign = textAlign;
+                    });
+                    
+                    // Apply to paragraph elements
+                    const paragraphs = holder.querySelectorAll('p, div.ce-paragraph');
+                    paragraphs.forEach(p => {
+                        p.style.textAlign = textAlign;
+                    });
+                }
+            }
+        } catch (error) {
+            console.warn('TextAlign: Error applying alignment on block render', error);
+        }
     }
 
     render() {
@@ -81,23 +87,52 @@ class TextAlign {
     }
 
     surround(range) {
-        //console.log("Surrounding")
-        const firstParentNode = this.getParentNode(range.commonAncestorContainer)
+        const firstParentNode = this.getParentNode(range.commonAncestorContainer);
         if (this.state === "left") {
-            firstParentNode.style.textAlign = "center"
-            this.state = "center"
+            firstParentNode.style.textAlign = "center";
+            this.state = "center";
         }
         else if (this.state === "center") {
-            firstParentNode.style.textAlign = "right"
-            this.state = "right"
+            firstParentNode.style.textAlign = "right";
+            this.state = "right";
         }
         else if (this.state === "right") {
-            firstParentNode.style.textAlign = "justify"
-            this.state = "justify"
+            firstParentNode.style.textAlign = "justify";
+            this.state = "justify";
         }
         else if (this.state === "justify") {
-            firstParentNode.style.textAlign = "left"
-            this.state = "left"
+            firstParentNode.style.textAlign = "left";
+            this.state = "left";
+        }
+        
+        // Save the alignment to the block data
+        this._saveAlignmentToBlock(firstParentNode);
+    }
+
+    // New method to save alignment data to the block
+    _saveAlignmentToBlock(node) {
+        try {
+            const currentBlock = this.api.blocks.getBlockByChildNode(node);
+            if (!currentBlock) return;
+            
+            const blockData = currentBlock.save();
+            
+            if (!blockData.data.tunes) {
+                blockData.data.tunes = {};
+            }
+            
+            if (!blockData.data.tunes.textAlign) {
+                blockData.data.tunes.textAlign = {};
+            }
+            
+            blockData.data.tunes.textAlign.alignment = node.style.textAlign;
+            
+            // Also save in the main data for backward compatibility
+            blockData.data.textAlign = node.style.textAlign;
+            
+            currentBlock.save();
+        } catch (error) {
+            console.warn('TextAlign: Error saving alignment data to block', error);
         }
     }
 
@@ -136,54 +171,31 @@ class TextAlign {
         this.setIcon();
     }
 
-    // Method to handle block data saving
+    // Method for Block API compatibility
     save(blockContent) {
-        const alignmentData = {};
+        const alignment = {};
         
         try {
             if (blockContent && blockContent.style && blockContent.style.textAlign) {
-                alignmentData.textAlign = blockContent.style.textAlign;
-            } else if (blockContent && blockContent.parentNode && blockContent.parentNode.style && blockContent.parentNode.style.textAlign) {
-                // Try parent node if blockContent doesn't have alignment
-                alignmentData.textAlign = blockContent.parentNode.style.textAlign;
+                alignment.textAlign = blockContent.style.textAlign;
             }
-        } catch (e) {
-            console.warn('TextAlign plugin: Error saving alignment data', e);
+        } catch (error) {
+            console.warn('TextAlign: Error in save method', error);
         }
         
-        return alignmentData;
+        return alignment;
     }
     
-    // Method to handle block rendering and restore alignment
-    static get onRender() {
-        return (block) => {
-            // Try to restore alignment if it exists in the data
-            setTimeout(() => {
-                try {
-                    const blockData = block.data || {};
-                    
-                    // Check if we have alignment data
-                    if (blockData.textAlign) {
-                        // Apply alignment to the block holder
-                        if (block.holder) {
-                            block.holder.style.textAlign = blockData.textAlign;
-                            
-                            // Find and align all relevant child elements
-                            ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'div'].forEach(tagName => {
-                                const elements = block.holder.querySelectorAll(tagName);
-                                elements.forEach(el => {
-                                    el.style.textAlign = blockData.textAlign;
-                                });
-                            });
-                        }
-                    }
-                } catch (e) {
-                    console.warn('TextAlign plugin: Error restoring alignment', e);
-                }
-            }, 0);
-        };
+    // Method to handle data serialization for Block Tools API
+    static get tunes() {
+        return [{
+            name: 'textAlign',
+            data: {
+                alignment: 'left' // default alignment
+            }
+        }];
     }
-
+    
     // Find parent node until it is DIV, Paragraph or Heading
     getParentNode(node){
         const validTags = ["DIV", "P", "H1", "H2", "H3", "H4", "H5", "H6"];
