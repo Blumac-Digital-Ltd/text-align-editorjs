@@ -8,7 +8,7 @@ Updated with type="button" to prevent unwanted form submissions
 
 ## Installation
 ```
-npm i blumac-digital-ltd/text-align-editorjs
+npm i @blumacdigital/text-align-editorjs
 ```
 
 
