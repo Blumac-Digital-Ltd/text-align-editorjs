@@ -12,14 +12,60 @@ class TextAlign {
         return 'Text Alignment';
     }
 
+    /**
+     * Allow the inline alignment settings to be saved in the HTML
+     */
+    static get sanitize() {
+        return {
+            p: {
+                class: true,
+                style: true,
+                'data-text-align': true
+            },
+            div: {
+                class: true,
+                style: true,
+                'data-text-align': true
+            },
+            h1: {
+                class: true,
+                style: true,
+                'data-text-align': true
+            },
+            h2: {
+                class: true,
+                style: true,
+                'data-text-align': true
+            },
+            h3: {
+                class: true, 
+                style: true,
+                'data-text-align': true
+            },
+            h4: {
+                class: true,
+                style: true,
+                'data-text-align': true
+            },
+            h5: {
+                class: true,
+                style: true,
+                'data-text-align': true
+            },
+            h6: {
+                class: true,
+                style: true,
+                'data-text-align': true
+            }
+        };
+    }
+
     constructor({api, config = {}}){
         this.currenticon = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="square" stroke-linejoin="arcs"></svg>';
         this.button = null;
         this.state = "left";
         this.api = api;
         this.config = config;
-        this.tag = 'DIV';
-        this.class = 'text-align';
     }
 
     render(){
@@ -33,94 +79,62 @@ class TextAlign {
 
     surround(range){
         const firstParentNode = this.getParentNode(range.startContainer);
+        
+        // Store alignment in both style and data attribute for better persistence
         if (this.state === "left") {
             firstParentNode.style.textAlign = "center";
+            firstParentNode.dataset.textAlign = "center";
             this.state = "center";
         }
         else if (this.state === "center") {
             firstParentNode.style.textAlign = "right";
+            firstParentNode.dataset.textAlign = "right";
             this.state = "right";
         }
         else if (this.state === "right") {
             firstParentNode.style.textAlign = "justify";
+            firstParentNode.dataset.textAlign = "justify";
             this.state = "justify";
         }
         else if (this.state === "justify") {
             firstParentNode.style.textAlign = "left";
+            firstParentNode.dataset.textAlign = "left";
             this.state = "left";
         }
         
-        // Save alignment data to the block
-        this.saveAlignmentData(firstParentNode);
-    }
-    
-    /**
-     * Save the alignment data to the current block
-     * 
-     * @param {HTMLElement} node - The node containing text alignment
-     */
-    saveAlignmentData(node) {
-        const currentBlock = this.api.blocks.getCurrentBlock();
-        if (currentBlock) {
-            const blockData = this.api.blocks.getBlockData(currentBlock.id);
-            
-            // Update the block data with alignment information
-            this.api.blocks.update(currentBlock.id, {
-                ...blockData,
-                textAlign: this.state
-            });
-        }
+        // Force the editor to recognize this change as a content update
+        this.api.inlineToolbar.close();
     }
 
-    /**
-     * Apply saved alignment data when a block is rendered
-     */
-    static prepare({data}) {
-        const blockContent = document.createElement('div');
-        
-        // If the block has alignment data, apply it to the element
-        if (data && data.textAlign) {
-            blockContent.style.textAlign = data.textAlign;
-        }
-        
-        return blockContent;
-    }
-
-    /**
-     * Sanitize tool data to save
-     * 
-     * @param {HTMLElement} node - Node with alignment
-     * @returns {object} - Sanitized data
-     */
-    static sanitize(data) {
-        if (!data.textAlign) {
-            return {
-                ...data,
-                textAlign: 'left' // Default alignment if none specified
-            };
-        }
-        
-        return data;
-    }
-
-    checkState(text){
-        if (!text) {
+    checkState(selection){
+        if (!selection) {
             return;
         }
 
         try {
-            const anchorReq = this.api.selection.findParentTag(text);
-            const textAlign = window.getComputedStyle(anchorReq).textAlign;
-            if (textAlign === 'center') {
-                this.state = 'center';
-            } else if (textAlign === 'right') {
-                this.state = 'right';
-            } else if (textAlign === 'justify') {
-                this.state = 'justify';
-            } else {
-                this.state = 'left';
+            const anchorReq = this.api.selection.findParentTag(selection);
+            
+            // First check data attribute (our stored value)
+            if (anchorReq.dataset.textAlign) {
+                this.state = anchorReq.dataset.textAlign;
             }
-        } catch (e) {}
+            // Fallback to computed style
+            else {
+                const textAlign = window.getComputedStyle(anchorReq).textAlign;
+                if (textAlign === 'center') {
+                    this.state = 'center';
+                } else if (textAlign === 'right') {
+                    this.state = 'right';
+                } else if (textAlign === 'justify') {
+                    this.state = 'justify';
+                } else {
+                    this.state = 'left';
+                }
+            }
+        } catch (e) {
+            // If there's an error, default to left alignment
+            this.state = 'left';
+        }
         
         this.setIcon();
     }
