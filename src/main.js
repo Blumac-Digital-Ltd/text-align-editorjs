@@ -9,6 +9,11 @@ class TextAlign {
         return true;
     }
     
+    // This critical method tells EditorJS when to show this inline tool
+    static get isInlineTool() {
+        return true;
+    }
+    
     // This is used to recognize the tool in the inline toolbar
     static get CSS() {
         return 'ce-inline-tool-text-align';
@@ -149,6 +154,11 @@ class TextAlign {
         
         // Save the alignment to the block data
         this._saveAlignmentToBlock(firstParentNode);
+    }
+
+    // This tells EditorJS that the tool should show in the inline toolbar
+    showInlineToolbar() {
+        return true;
     }
 
     // New method to save alignment data to the block
