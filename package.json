@@ -1,6 +1,6 @@
 {
   "name": "@blumacdigital/text-align-editorjs",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "main": "dist/text-align.cjs.js",
   "module": "dist/text-align.esm.js",
   "browser": "dist/text-align.umd.js",
