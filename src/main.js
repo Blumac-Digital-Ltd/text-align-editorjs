@@ -109,7 +109,7 @@ class TextAlign {
         this.button.classList.add(TextAlign.CSS);
         
         // Add tooltip
-        this.button.title = TextAlign.title;
+        this.button.title = TextAlign.title || 'Text Alignment';
         
         // Create SVG icon
         const svgIcon = document.createElement('svg');
@@ -156,9 +156,26 @@ class TextAlign {
         this._saveAlignmentToBlock(firstParentNode);
     }
 
-    // This tells EditorJS that the tool should show in the inline toolbar
+    // This tells EditorJS to enable this tool in the inline toolbar
     showInlineToolbar() {
         return true;
+    }
+
+    // Force the inline tool to be visible whenever text is selected
+    checkState(selection) {
+        try {
+            // Make sure the toolbar is shown when text is selected
+            if (selection && !selection.isCollapsed) {
+                this.button.classList.add('ce-inline-tool--active');
+                return true;
+            } else {
+                this.button.classList.remove('ce-inline-tool--active');
+                return false;
+            }
+        } catch (e) {
+            console.warn('Error checking text alignment state', e);
+            return false;
+        }
     }
 
     // New method to save alignment data to the block
