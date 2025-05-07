@@ -4,11 +4,22 @@ class TextAlign {
     static rightAlignedIcon = '<path d="M21 9.5H7M21 4.5H3M21 14.5H3M21 19.5H7"/>' //'<path d="M17 9.5H3M21 4.5H3M21 14.5H3M17 19.5H3"/>'
     static justifyAlignedIcon = '<path d="M21 9.5H3M21 4.5H3M21 14.5H3M21 19.5H3"/>'
 
+    // These methods are critical for inline tools
     static get isInline() {
         return true;
     }
     
-    // Add a title for the toolbar button
+    // This is used to recognize the tool in the inline toolbar
+    static get CSS() {
+        return 'ce-inline-tool-text-align';
+    }
+    
+    // The name affects how the tool is identified by EditorJS
+    static get name() {
+        return 'textAlign';
+    }
+    
+    // Title displayed on hover
     static get title() {
         return 'Text Alignment';
     }
@@ -89,13 +100,31 @@ class TextAlign {
     render() {
         this.button = document.createElement('button');
         this.button.type = 'button';
-        this.button.classList.add('ce-inline-tool', 'ce-inline-tool--align-text');
-        this.button.innerHTML = this.currenticon;
+        this.button.classList.add('ce-inline-tool');
+        this.button.classList.add(TextAlign.CSS);
         
         // Add tooltip
-        this.button.title = 'Text Alignment';
+        this.button.title = TextAlign.title;
         
-        this.setIcon();
+        // Create SVG icon
+        const svgIcon = document.createElement('svg');
+        svgIcon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        svgIcon.setAttribute('width', '17');
+        svgIcon.setAttribute('height', '17');
+        svgIcon.setAttribute('viewBox', '0 0 24 24');
+        svgIcon.setAttribute('fill', 'none');
+        svgIcon.setAttribute('stroke', 'currentColor');
+        svgIcon.setAttribute('stroke-width', '2');
+        svgIcon.setAttribute('stroke-linecap', 'square');
+        svgIcon.setAttribute('stroke-linejoin', 'arcs');
+        
+        // Add path element for the icon
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', TextAlign.leftAlignedIcon.replace(/<path d="(.+)"\/>/, '$1'));
+        
+        svgIcon.appendChild(path);
+        this.button.appendChild(svgIcon);
+        
         return this.button;
     }
 
@@ -221,26 +250,31 @@ class TextAlign {
     }
 
     setIcon(){
-        // Create the SVG container
-        const svgContainer = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="arcs">';
+        if (!this.button) return;
         
-        // Add the appropriate path based on alignment state
-        let path;
-        if (this.state === "" || this.state === "left"){
-            path = TextAlign.leftAlignedIcon;
+        // Find the path element in our SVG
+        const svgElement = this.button.querySelector('svg');
+        const pathElement = svgElement ? svgElement.querySelector('path') : null;
+        
+        if (!pathElement) return;
+        
+        // Get the proper path data based on alignment state
+        let pathData;
+        if (this.state === "center") {
+            pathData = TextAlign.centerAlignedIcon.replace(/<path d="(.+)"\/>/, '$1');
         }
-        else if (this.state === "center"){
-            path = TextAlign.centerAlignedIcon;
+        else if (this.state === "right") {
+            pathData = TextAlign.rightAlignedIcon.replace(/<path d="(.+)"\/>/, '$1');
         }
-        else if (this.state === "right"){
-            path = TextAlign.rightAlignedIcon;
+        else if (this.state === "justify") {
+            pathData = TextAlign.justifyAlignedIcon.replace(/<path d="(.+)"\/>/, '$1');
         }
-        else if (this.state === "justify"){
-            path = TextAlign.justifyAlignedIcon;
+        else { // left or default
+            pathData = TextAlign.leftAlignedIcon.replace(/<path d="(.+)"\/>/, '$1');
         }
         
-        // Set the complete SVG with the path
-        this.button.innerHTML = svgContainer + path + '</svg>';
+        // Update the path's d attribute
+        pathElement.setAttribute('d', pathData);
     }
 }
 
