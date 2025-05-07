@@ -1,6 +1,6 @@
 {
-  "name": "@canburaks/text-align-editorjs",
-  "version": "1.1.0",
+  "name": "@blumacdigital/text-align-editorjs",
+  "version": "1.1.1",
   "main": "dist/text-align.cjs.js",
   "module": "dist/text-align.esm.js",
   "browser": "dist/text-align.umd.js",
@@ -25,16 +25,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/canburaks/text-align-editorjs.git"
+    "url": "git+https://github.com/blumac-digital-ltd/text-align-editorjs.git"
   },
   "keywords": [
     "editorjs",
     "editor-js"
   ],
-  "author": "Can Burak Sofyalıoğlu",
+  "author": "Matthew Cook",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/canburaks/text-align-editorjs/issues"
+    "url": "https://github.com/blumac-digital-ltd/text-align-editorjs/issues"
   },
-  "homepage": "https://github.com/canburaks/text-align-editorjs#readme"
+  "homepage": "https://github.com/blumac-digital-ltd/text-align-editorjs#readme"
 }

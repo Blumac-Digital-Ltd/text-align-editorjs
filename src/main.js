@@ -18,6 +18,7 @@ class TextAlign {
 
     render() {
         this.button = document.createElement('button');
+        this.button.type = 'button';
         this.button.classList = 'ce-inline-tool ce-inline-tool--align-text';
         this.button.appendChild(this.button.ownerDocument.importNode(this.aligncurrenticon.documentElement, true))
         this.setIcon()
@@ -52,15 +53,15 @@ class TextAlign {
         this.setIcon()
     }
 
-    // Find parent node until it is DIV or Paragraph
+    // Find parent node until it is DIV, Paragraph or Heading
     getParentNode(node){
-        if (node?.parentNode?.tagName === "DIV" || node?.parentNode?.tagName === "p") {
-            return node.parentNode
+        const validTags = ["DIV", "P", "H1", "H2", "H3", "H4", "H5", "H6"];
+        if (node?.parentNode && validTags.includes(node.parentNode.tagName)) {
+            return node.parentNode;
         }
         else {
-            return this.getParentNode(node.parentNode)
+            return this.getParentNode(node.parentNode);
         }
-
     }
 
     setIcon(){
