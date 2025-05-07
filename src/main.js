@@ -7,6 +7,61 @@ class TextAlign {
     static get isInline() {
         return true;
     }
+    
+    // Add this to specify which blocks this tool can be used with
+    static get sanitize() {
+        return {
+            header: true,
+            paragraph: true
+        };
+    }
+    
+    // Explicitly list supported block types
+    static get supportedBlockTypes() {
+        return ['paragraph', 'header'];
+    }
+    
+    // Add method to preserve text alignment on initial render
+    static get pasteConfig() {
+        return {
+            tags: ['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']
+        };
+    }
+    
+    // Add proper block-level integration
+    static get enableLineBreaks() {
+        return true;
+    }
+    
+    // Add block-level integration for specifying alignment classnames
+    static get blockClassNames() {
+        return {
+            'text-align-left': 'text-align-left',
+            'text-align-center': 'text-align-center',
+            'text-align-right': 'text-align-right',
+            'text-align-justify': 'text-align-justify'
+        };
+    }
+    
+    // Convert DOM to data
+    static get conversionConfig() {
+        return {
+            export: (domNode) => {
+                const alignmentStyle = domNode.style.textAlign;
+                if (!alignmentStyle) return {};
+                
+                return {
+                    textAlign: alignmentStyle
+                };
+            },
+            import: (data) => {
+                return {
+                    textAlign: data.textAlign || 'left'
+                };
+            }
+        };
+    }
+    
     constructor({ api }) {
         //console.log("Constructing")
         this.currenticon = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="square" stroke-linejoin="arcs"></svg>'
@@ -50,7 +105,80 @@ class TextAlign {
         if (!text) {
             return;
         }
-        this.setIcon()
+        
+        // Check if we're in a header block
+        const currentBlock = this.api.blocks.getCurrentBlock();
+        if (currentBlock) {
+            const blockElement = currentBlock.holder;
+            if (blockElement) {
+                const computedStyle = window.getComputedStyle(blockElement);
+                const textAlign = computedStyle.getPropertyValue('text-align');
+                
+                if (textAlign === 'center') {
+                    this.state = 'center';
+                } else if (textAlign === 'right') {
+                    this.state = 'right';
+                } else if (textAlign === 'justify') {
+                    this.state = 'justify';
+                } else {
+                    this.state = 'left';
+                }
+            }
+        }
+        
+        this.setIcon();
+    }
+
+    // Method to handle block data saving
+    save(blockContent) {
+        const alignmentData = {};
+        
+        try {
+            // Get the parent node that contains the alignment
+            const blockNode = this.getParentNode(blockContent);
+            
+            // Save the alignment if it exists
+            if (blockNode && blockNode.style && blockNode.style.textAlign) {
+                alignmentData.textAlign = blockNode.style.textAlign;
+            }
+        } catch (e) {
+            console.warn('TextAlign plugin: Error saving alignment data', e);
+        }
+        
+        return alignmentData;
+    }
+    
+    // Method to handle block rendering and restore alignment
+    static get onRender() {
+        return (block) => {
+            // Try to restore alignment if it exists in the data
+            setTimeout(() => {
+                try {
+                    const savedData = block.data;
+                    if (savedData && savedData.textAlign) {
+                        const holder = block.holder;
+                        if (holder) {
+                            // Apply alignment to the block
+                            holder.style.textAlign = savedData.textAlign;
+                            
+                            // Also apply to any headings inside
+                            const headings = holder.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                            headings.forEach(heading => {
+                                heading.style.textAlign = savedData.textAlign;
+                            });
+                            
+                            // And to paragraphs
+                            const paragraphs = holder.querySelectorAll('p, div');
+                            paragraphs.forEach(p => {
+                                p.style.textAlign = savedData.textAlign;
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('TextAlign plugin: Error restoring alignment', e);
+                }
+            }, 0);
+        };
     }
 
     // Find parent node until it is DIV, Paragraph or Heading
