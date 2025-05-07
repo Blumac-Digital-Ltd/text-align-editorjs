@@ -8,6 +8,16 @@ class TextAlign {
         return true;
     }
     
+    // Add a title for the toolbar button
+    static get title() {
+        return 'Text Alignment';
+    }
+    
+    // Make sure the tool shows up in the toolbar
+    static get displayInToolbox() {
+        return true;
+    }
+    
     // Add this to specify which blocks this tool can be used with
     static get sanitize() {
         return {
@@ -29,8 +39,7 @@ class TextAlign {
     }
     
     constructor({ api, config = {} }) {
-        this.currenticon = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="square" stroke-linejoin="arcs"></svg>'
-        this.aligncurrenticon = new DOMParser().parseFromString(this.currenticon,'application/xml');
+        this.currenticon = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="square" stroke-linejoin="arcs"></svg>';
         this.button = null;
         this.state = "left";
         this.api = api;
@@ -80,9 +89,13 @@ class TextAlign {
     render() {
         this.button = document.createElement('button');
         this.button.type = 'button';
-        this.button.classList = 'ce-inline-tool ce-inline-tool--align-text';
-        this.button.appendChild(this.button.ownerDocument.importNode(this.aligncurrenticon.documentElement, true))
-        this.setIcon()
+        this.button.classList.add('ce-inline-tool', 'ce-inline-tool--align-text');
+        this.button.innerHTML = this.currenticon;
+        
+        // Add tooltip
+        this.button.title = 'Text Alignment';
+        
+        this.setIcon();
         return this.button;
     }
 
@@ -208,18 +221,26 @@ class TextAlign {
     }
 
     setIcon(){
+        // Create the SVG container
+        const svgContainer = '<svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="arcs">';
+        
+        // Add the appropriate path based on alignment state
+        let path;
         if (this.state === "" || this.state === "left"){
-            this.button.childNodes[0].innerHTML = TextAlign.leftAlignedIcon
+            path = TextAlign.leftAlignedIcon;
         }
         else if (this.state === "center"){
-            this.button.childNodes[0].innerHTML = TextAlign.centerAlignedIcon
+            path = TextAlign.centerAlignedIcon;
         }
         else if (this.state === "right"){
-            this.button.childNodes[0].innerHTML = TextAlign.rightAlignedIcon
+            path = TextAlign.rightAlignedIcon;
         }
         else if (this.state === "justify"){
-            this.button.childNodes[0].innerHTML = TextAlign.justifyAlignedIcon
+            path = TextAlign.justifyAlignedIcon;
         }
+        
+        // Set the complete SVG with the path
+        this.button.innerHTML = svgContainer + path + '</svg>';
     }
 }
 
