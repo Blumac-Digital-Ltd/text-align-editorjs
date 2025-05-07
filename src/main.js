@@ -18,6 +18,8 @@ class TextAlign {
         this.state = "left";
         this.api = api;
         this.config = config;
+        this.tag = 'DIV';
+        this.class = 'text-align';
     }
 
     render(){
@@ -47,6 +49,58 @@ class TextAlign {
             firstParentNode.style.textAlign = "left";
             this.state = "left";
         }
+        
+        // Save alignment data to the block
+        this.saveAlignmentData(firstParentNode);
+    }
+    
+    /**
+     * Save the alignment data to the current block
+     * 
+     * @param {HTMLElement} node - The node containing text alignment
+     */
+    saveAlignmentData(node) {
+        const currentBlock = this.api.blocks.getCurrentBlock();
+        if (currentBlock) {
+            const blockData = this.api.blocks.getBlockData(currentBlock.id);
+            
+            // Update the block data with alignment information
+            this.api.blocks.update(currentBlock.id, {
+                ...blockData,
+                textAlign: this.state
+            });
+        }
+    }
+
+    /**
+     * Apply saved alignment data when a block is rendered
+     */
+    static prepare({data}) {
+        const blockContent = document.createElement('div');
+        
+        // If the block has alignment data, apply it to the element
+        if (data && data.textAlign) {
+            blockContent.style.textAlign = data.textAlign;
+        }
+        
+        return blockContent;
+    }
+
+    /**
+     * Sanitize tool data to save
+     * 
+     * @param {HTMLElement} node - Node with alignment
+     * @returns {object} - Sanitized data
+     */
+    static sanitize(data) {
+        if (!data.textAlign) {
+            return {
+                ...data,
+                textAlign: 'left' // Default alignment if none specified
+            };
+        }
+        
+        return data;
     }
 
     checkState(text){
